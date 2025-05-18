@@ -25,3 +25,7 @@ Should integrate with pretty much anything...
 
 
 https://www.thingiverse.com/thing:4889111
+
+- My custom version with a lot weaker ULN2003 stepper:
+- One ESP is controllinh 2 steppers with the help of the ESPHome Packages
+

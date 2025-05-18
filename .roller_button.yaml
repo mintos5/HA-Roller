@@ -1,0 +1,93 @@
+## Binary sensors
+binary_sensor:
+#  - platform: gpio
+#    pin: 
+#      number: $pinPIR
+#    name: '${sub_hostname} motion'
+#    device_class: motion
+  - platform: gpio
+    pin:
+      number: ${pinButton} # Connect Button to your desired pin and GND
+      mode: INPUT_PULLUP
+      inverted: true # If using a touch sensor instead of a "physical" button set this to false, else set it to true
+    name: '${mystepper} Action Button'
+    internal: true
+    on_click:
+      - min_length: 50ms
+        max_length: 500ms
+        then: # Short press to OPEN/CLOSE blinds and also for setting up
+          - if: # If settings variable is on
+              condition:
+                - lambda: 'return id(${mystepper}_settingmode) != 0;'
+              then: # Enter Setting Mode
+                - script.execute: ${mystepper}_setupbutton
+              else:
+                - if: # If blind is stopped while opening #0=STOPPED WHILE OPENING
+                    condition:
+                      - lambda: 'return id(${mystepper}_last_action) == 0;'
+                    then:
+                      - text_sensor.template.publish:
+                          id: ${mystepper}_current_status
+                          state: 'Closing...'
+                      - globals.set:
+                          id: ${mystepper}_last_action
+                          value: '1'
+                      - lambda: 'auto call = id(${mystepper}_blinded).make_call().set_command_close(); call.perform();'
+                    else:
+                      - if: # If blind is moving down #1=MOVING DOWN
+                          condition:
+                            - lambda: 'return id(${mystepper}_last_action) == 1;'
+                          then:
+                            - text_sensor.template.publish:
+                                id: ${mystepper}_current_status
+                                state: !lambda |-
+                                  int pos = round(float(float(id($mystepper).current_position) / float(id(${mystepper}_endstop))) * 100);
+                                  return (
+                                    (pos ? String(pos) + "% open" : "") +
+                                    (" / Stopped while closing")
+                                  ).c_str();
+                            - globals.set:
+                                id: ${mystepper}_last_action
+                                value: '2'
+                            - lambda: 'auto call = id(${mystepper}_blinded).make_call().set_command_stop(); call.perform();'
+                          else:
+                            - if: # If blind is stopped while closing #2=STOPPED WHILE CLOSING
+                                condition:
+                                  - lambda: 'return id(${mystepper}_last_action) == 2;'
+                                then:
+                                  - text_sensor.template.publish:
+                                      id: ${mystepper}_current_status
+                                      state: 'Opening...'
+                                  - globals.set:
+                                      id: ${mystepper}_last_action
+                                      value: '3'
+                                  - lambda: 'auto call = id(${mystepper}_blinded).make_call().set_command_open(); call.perform();'
+                                else:
+                                  - if: # If blind is moving up #3=MOVING UP
+                                      condition:
+                                        - lambda: 'return id(${mystepper}_last_action) == 3;'
+                                      then:
+                                        - text_sensor.template.publish:
+                                            id: ${mystepper}_current_status
+                                            state: !lambda |-
+                                              int pos = round(float(float(id(${mystepper}).current_position) / float(id(${mystepper}_endstop))) * 100);
+                                              return (
+                                                (pos ? String(pos) + "% open" : "") +
+                                                (" / Stopped while opening")
+                                              ).c_str();
+                                        - globals.set:
+                                            id: ${mystepper}_last_action
+                                            value: '0'
+                                        - lambda: 'auto call = id(${mystepper}_blinded).make_call().set_command_stop(); call.perform();'
+      - min_length: 4000ms
+        max_length: 10000ms
+        then: # Long press to Enter Setting Mode (4-10 Sec press)
+          - logger.log: 'Entered Settings Mode'
+          - switch.turn_on:
+              id: blue_led
+          - globals.set:
+              id: ${mystepper}_settingmode
+              value: '1'
+          - text_sensor.template.publish:
+              id: ${mystepper}_current_status
+              state: 'Setup activated, click to start'
