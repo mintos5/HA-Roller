@@ -4,7 +4,9 @@
 
 
 - Version with a lot weaker ULN2003 stepper:
-- One ESP is controllinh 2 steppers with the help of the ESPHome Packages
+    - or with a bit stronger drop-in replacement of Toshiba TBD62003A (worked enough for me)
+        - https://toshiba.semicon-storage.com/info/datasheet_en_20150724.pdf?did=29886
+- One ESP is controlling 2 steppers with the help of the ESPHome Packages
 - be careful with the PIN bindings, this was working on one dev board and not in another
     - needs more testing from my side
 

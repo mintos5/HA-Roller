@@ -67,7 +67,7 @@ text_sensor:
     id: ${mystepper}_current_status
     icon: 'mdi:chart-box-outline'
   - platform: template
-    name: 'Setup Position'
+    name: '${mystepper} Setup Position'
     id: ${mystepper}_setup_position
     icon: 'mdi:null'
 
